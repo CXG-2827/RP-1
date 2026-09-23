@@ -11,6 +11,7 @@ namespace RP0
 
         private static Rect _centralWindowPosition = new Rect((Screen.width - 150) / 2, (Screen.height - 50) / 2, 150, 50);
         private static Rect _blPlusPosition = new Rect(Screen.width - 500, 40, 100, 1);
+        private static Rect _manageLCWindowPosition = new Rect(Screen.width - 880, 40, 450, 1);
         private static Rect _lcResourcesPosition = new Rect(_centralWindowPosition.xMin - 150, _centralWindowPosition.yMin, 250, 200);
         private static Vector2 _scrollPos;
         private static Vector2 _scrollPos2;
@@ -20,6 +21,7 @@ namespace RP0
         private static bool _unlockEditor;
         private static bool _isKSCLocked = false;
         private static bool _inSCSubscene = false;
+        private static bool _rolloutTimeNeedsUpdate = true;
         public static bool InSCSubscene => _inSCSubscene;
         private static readonly List<GameScenes> _validScenes = new List<GameScenes> { GameScenes.FLIGHT, GameScenes.EDITOR, GameScenes.SPACECENTER, GameScenes.TRACKSTATION };
         private static GUIStyle _styleLabelRightAlign;
@@ -27,6 +29,11 @@ namespace RP0
         private static GUIStyle _styleLabelYellow;
         private static GUIStyle _styleLabelCenterAlign;
         private static GUIStyle _styleTextFieldRightAlign;
+
+        /// <summary>
+        /// Max amount of characters that can be entered for the name of a launch complex, pad or vessel.
+        /// </summary>
+        private const int _MaxNameChars = 40;
 
         public static bool IsPrimarilyDisabled => PresetManager.PresetLoaded() && (!PresetManager.Instance.ActivePreset.GeneralSettings.Enabled ||
                                                                                    !PresetManager.Instance.ActivePreset.GeneralSettings.BuildTimes);
@@ -50,6 +57,8 @@ namespace RP0
 
                 if (GUIStates.ShowEditorGUI)
                     EditorWindowPosition = DrawWindowWithTooltipSupport(EditorWindowPosition, "DrawEditorGUI", "Integration Info", DrawEditorGUI);
+                else
+                    _rolloutTimeNeedsUpdate = true; // as a simpler workaround, assume that the rollout effect needs updating if Editor GUI isn't already open
                 if (GUIStates.ShowSimulationGUI)
                     _simulationWindowPosition = DrawWindowWithTooltipSupport(_simulationWindowPosition, "DrawSimGUI", "Simulation", DrawSimulationWindow);
                 if (GUIStates.ShowSimConfig)
@@ -73,6 +82,8 @@ namespace RP0
                     _personnelPosition = DrawWindowWithTooltipSupport(_personnelPosition, "DrawPersonnelWindow", "Staffing", DrawPersonnelWindow);
                 if (GUIStates.ShowBLPlus)
                     _blPlusPosition = DrawWindowWithTooltipSupport(_blPlusPosition, "DrawBLPlusWindow", "Options", DrawBLPlusWindow);
+                if (GUIStates.ShowLCManagement)
+                    _manageLCWindowPosition = DrawWindowWithTooltipSupport(_manageLCWindowPosition, "DrawLCManagentWindow", "Launch Complexes", DrawLCManagentWindow);
                 if (GUIStates.ShowDismantlePad)
                     _centralWindowPosition = DrawWindowWithTooltipSupport(_centralWindowPosition, "DrawDismantlePadWindow", "Dismantle Pad", DrawDismantlePadOrLCWindow);
                 if (GUIStates.ShowDismantleLC)
@@ -120,13 +131,13 @@ namespace RP0
             {
                 if (!_isKSCLocked)
                 {
-                    InputLockManager.SetControlLock(ControlTypes.KSC_FACILITIES, SpaceCenterManagement.KCTKSCLock);
+                    InputLockManager.SetControlLock(ControlTypes.KSC_FACILITIES, SpaceCenterManagement.SCMKSCLock);
                     _isKSCLocked = true;
                 }
             }
             else if (_isKSCLocked)
             {
-                InputLockManager.RemoveControlLock(SpaceCenterManagement.KCTKSCLock);
+                InputLockManager.RemoveControlLock(SpaceCenterManagement.SCMKSCLock);
                 _isKSCLocked = false;
             }
 
@@ -266,6 +277,7 @@ namespace RP0
             GUIStates.ShowPresetSaver = false;
             GUIStates.ShowLaunchSiteSelector = false;
             GUIStates.ShowAirlaunch = false;
+            GUIStates.ShowLCManagement = false;
             GUIStates.ShowSimulationGUI = false;
             GUIStates.ShowSimConfig = false;
             GUIStates.ShowSimBodyChooser = false;

@@ -336,7 +336,11 @@ namespace RP0
             }
 
             if (SpaceCenterManagement.Instance.TechList.Count > 0)
-                ResearchSalaryPerDay = Researchers * Database.SettingsSC.salaryResearchers / 365.25d;
+            {
+                double wr = SpaceCenterManagement.Instance.TechList[0].workRate;
+                double idleMult = Database.SettingsSC.ResearcherIdleSalaryMult;
+                ResearchSalaryPerDay = Researchers * Database.SettingsSC.salaryResearchers / 365.25d * (idleMult + (1d - idleMult) * wr);
+            }
             else
                 ResearchSalaryPerDay = Researchers * Database.SettingsSC.salaryResearchers * Database.SettingsSC.ResearcherIdleSalaryMult / 365.25d;
 
@@ -407,6 +411,11 @@ namespace RP0
             if (HighLogic.CurrentGame == null)
                 return;
 
+            // Skip maintenance/upkeep/reputation processing while simulating; an SCM sim can jump
+            // UT forward by years and this would churn funds/rep against time that isn't passing.
+            if (SpaceCenterManagement.Instance?.IsSimulatedFlight == true)
+                return;
+
             if (_frameCount++ < 2)
             {
                 return;
@@ -449,6 +458,10 @@ namespace RP0
 
         public void FixedUpdate()
         {
+            // See Update(): don't process crew/maintenance during a simulation time jump.
+            if (SpaceCenterManagement.Instance?.IsSimulatedFlight == true)
+                return;
+
             double UT = Planetarium.GetUniversalTime();
             if (_lastUpdateFixed == 0)
                 _lastUpdateFixed = UT;
@@ -529,7 +542,7 @@ namespace RP0
             }
 
             // Finally, update all builds
-            SpaceCenterManagement.Instance.ProgressBuildTime(UTDiff);
+            SpaceCenterManagement.Instance?.ProgressBuildTime(UTDiff);
         }
 
         public void OnDestroy()
